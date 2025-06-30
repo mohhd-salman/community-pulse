@@ -1,0 +1,12 @@
+# Backend ignores
+backend/venv/
+backend/instance/
+backend/migrations/
+backend/*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*.log
+.env
+
