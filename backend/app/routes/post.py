@@ -3,11 +3,18 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import Post, User
 from app.extensions import db
 from datetime import datetime, UTC
+import logging
 
 post_bp = Blueprint("posts", __name__)
+logger = logging.getLogger(__name__)
+
+def error_response(message, code=400):
+    logger.warning(f"{code} - {message}")
+    return jsonify({"msg": message}), code
+
 
 # -------------------------------
-# Create a new post (JWT required)
+# Create a new post
 # -------------------------------
 @post_bp.route("/", methods=["POST"])
 @jwt_required()
@@ -18,11 +25,9 @@ def create_post():
     link = data.get("link")
 
     if not title:
-        return jsonify({"msg": "Title is required"}), 400
+        return error_response("Title is required", 400)
 
     user_id = int(get_jwt_identity())
-
-
     new_post = Post(
         title=title,
         content=content,
@@ -33,25 +38,114 @@ def create_post():
 
     db.session.add(new_post)
     db.session.commit()
+    logger.info(f"Post created by user {user_id}")
 
     return jsonify({"msg": "Post created successfully"}), 201
 
+
 # -------------------------------
-# Get all posts
+# Get all / filtered posts
 # -------------------------------
 @post_bp.route("/", methods=["GET"])
 def get_posts():
-    posts = Post.query.order_by(Post.id.desc()).all()
+    author_id = request.args.get("author_id", type=int)
+    keyword = request.args.get("keyword", type=str)
 
+    query = Post.query
+    if author_id:
+        query = query.filter_by(author_id=author_id)
+    if keyword:
+        query = query.filter(
+            Post.title.ilike(f"%{keyword}%") | Post.content.ilike(f"%{keyword}%")
+        )
+
+    posts = query.order_by(Post.id.desc()).all()
     output = []
+
     for post in posts:
+        comments = [
+            {
+                "id": c.id,
+                "content": c.content,
+                "author_id": c.author_id,
+                "author_name": c.author.name,
+                "created_at": c.created_at.isoformat()
+            }
+            for c in post.comments
+        ]
         output.append({
             "id": post.id,
             "title": post.title,
             "content": post.content,
             "link": post.link,
             "created_at": post.created_at.isoformat(),
-            "author_id": post.author_id
+            "author_id": post.author_id,
+            "comments": comments
         })
 
     return jsonify(output), 200
+
+
+# -------------------------------
+# Delete post (user or admin)
+# -------------------------------
+@post_bp.route("/<int:post_id>", methods=["DELETE"])
+@jwt_required()
+def delete_post(post_id):
+    user_id = int(get_jwt_identity())
+    post = Post.query.get(post_id)
+    user = User.query.get(user_id)
+
+    if not post:
+        return error_response("Post not found", 404)
+    if post.author_id != user_id and not user.is_admin:
+        return error_response("Unauthorized", 403)
+
+    db.session.delete(post)
+    db.session.commit()
+    logger.info(f"Post {post_id} deleted by user {user_id}")
+    return jsonify({"msg": "Post deleted"}), 200
+
+
+# -------------------------------
+# Edit post
+# -------------------------------
+@post_bp.route("/<int:post_id>", methods=["PATCH"])
+@jwt_required()
+def edit_post(post_id):
+    user_id = int(get_jwt_identity())
+    post = Post.query.get(post_id)
+
+    if not post:
+        return error_response("Post not found", 404)
+    if post.author_id != user_id:
+        return error_response("Unauthorized", 403)
+
+    data = request.get_json()
+    post.title = data.get("title", post.title)
+    post.content = data.get("content", post.content)
+    post.link = data.get("link", post.link)
+
+    db.session.commit()
+    logger.info(f"Post {post_id} updated by user {user_id}")
+    return jsonify({"msg": "Post updated"}), 200
+
+
+# -------------------------------
+# Get vote count
+# -------------------------------
+@post_bp.route("/<int:post_id>/votes", methods=["GET"])
+@jwt_required()
+def get_post_votes(post_id):
+    post = Post.query.get(post_id)
+    if not post:
+        return error_response("Post not found", 404)
+
+    upvotes = sum(1 for v in post.votes if v.value == 1)
+    downvotes = sum(1 for v in post.votes if v.value == -1)
+
+    return jsonify({
+        "post_id": post_id,
+        "upvotes": upvotes,
+        "downvotes": downvotes
+    }), 200
