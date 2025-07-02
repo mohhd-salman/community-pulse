@@ -1,23 +1,45 @@
-# === General Python ===
+# Python / Flask (Backend)
 __pycache__/
 *.py[cod]
-*.log
-*.env
 *.sqlite3
+*.env
+*.log
 
-# === Flask / Backend ===
+# Virtual Environments
+venv/
 backend/venv/
+
+# Flask instance & migrations
 backend/instance/
 backend/migrations/
 backend/*.sqlite3
+
+# PyCharm project files
 backend/.idea/
 
-# === Frontend (if added later) ===
+# React / Vite (Frontend)
 frontend/node_modules/
 frontend/dist/
-frontend/.env
+frontend/dist-ssr/
+frontend/.vite/
+frontend/*.local
 
-# === IDE/Editor Config ===
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor / IDE files
 .vscode/
+!.vscode/extensions.json
+.idea/
 .DS_Store
-
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
