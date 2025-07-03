@@ -19,7 +19,7 @@ def create_app():
     """
     app = Flask(__name__)
     app.config.from_object(Config)
-    CORS(app)
+    CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"

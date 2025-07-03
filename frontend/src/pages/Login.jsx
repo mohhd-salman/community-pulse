@@ -17,7 +17,7 @@ function Login() {
       });
 
       localStorage.setItem("token", res.data.access_token);
-      navigate("/");
+      navigate("/dashboard");
     } catch (err) {
       setError("Invalid credentials");
     }

@@ -68,7 +68,7 @@ def get_posts():
                 "id": c.id,
                 "content": c.content,
                 "author_id": c.author_id,
-                "author_name": c.author.name,
+                "author_name": c.author.name if c.author else "Unknown",
                 "created_at": c.created_at.isoformat()
             }
             for c in post.comments

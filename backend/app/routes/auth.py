@@ -120,3 +120,13 @@ def change_password():
     db.session.commit()
     logger.info(f"User {user.email} changed their password")
     return jsonify({"msg": "Password updated successfully"}), 200
+
+@auth_bp.route("/is-admin", methods=["GET"])
+@jwt_required()
+def check_admin():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    return jsonify({
+        "is_admin": user.is_admin if user else False
+    }), 200
