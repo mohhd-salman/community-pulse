@@ -31,6 +31,18 @@ def create_app():
     jwt.init_app(app)
     migrate.init_app(app, db)
 
+    @jwt.unauthorized_loader
+    def missing_token(err):
+        return jsonify({"msg": "Missing or invalid token"}), 401
+
+    @jwt.invalid_token_loader
+    def bad_token(err):
+        return jsonify({"msg": "Invalid token"}), 401
+
+    @jwt.expired_token_loader
+    def expired_token(header, payload):
+        return jsonify({"msg": "Token expired"}), 401
+
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(post_bp, url_prefix="/api/posts")
     app.register_blueprint(vote_bp, url_prefix="/api/votes")

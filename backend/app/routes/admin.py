@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+
+from app.decorators import prevent_banned
 from app.models import db, User, Post, Comment, Vote
 import logging
 from sqlalchemy import func
@@ -21,6 +23,7 @@ def is_admin_user(user_id):
 # -------------------------------
 @admin_bp.route("/users/<int:user_id>/ban", methods=["PATCH"])
 @jwt_required()
+@prevent_banned
 def toggle_ban_user(user_id):
     admin_id = int(get_jwt_identity())
     if not is_admin_user(admin_id):
@@ -43,6 +46,7 @@ def toggle_ban_user(user_id):
 # -------------------------------
 @admin_bp.route("/users", methods=["GET"])
 @jwt_required()
+@prevent_banned
 def view_users():
     admin_id = int(get_jwt_identity())
     if not is_admin_user(admin_id):
@@ -68,6 +72,7 @@ def view_users():
 # -------------------------------
 @admin_bp.route("/analytics", methods=["GET"])
 @jwt_required()
+@prevent_banned
 def get_analytics():
     admin_id = int(get_jwt_identity())
     if not is_admin_user(admin_id):

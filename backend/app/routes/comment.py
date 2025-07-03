@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+
+from app.decorators import prevent_banned
 from app.models import db, Comment, User
 import logging
 
@@ -17,6 +19,7 @@ def error_response(message, code=400):
 # -------------------------------
 @comment_bp.route("/", methods=["POST"])
 @jwt_required()
+@prevent_banned
 def add_comment():
     data = request.get_json()
     user_id = int(get_jwt_identity())
@@ -50,6 +53,7 @@ def add_comment():
 # -------------------------------
 @comment_bp.route("/<int:comment_id>", methods=["DELETE"])
 @jwt_required()
+@prevent_banned
 def delete_comment(comment_id):
     user_id = int(get_jwt_identity())
     comment = Comment.query.get(comment_id)

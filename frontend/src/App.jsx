@@ -8,7 +8,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import UpdateProfile from "./pages/UpdateProfile";
 import ChangePassword from "./pages/ChangePassword";
 import EditPost from "./pages/EditPost";
-import NewPost from "./pages/NewPost";
 import PostDetail from "./pages/PostDetail";
 import Navbar from "./components/Navbar";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -52,14 +51,6 @@ function App() {
           }
         />
 
-        <Route
-          path="/new-post"
-          element={
-            <ProtectedRoute>
-              <NewPost />
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="/edit-post/:postId"

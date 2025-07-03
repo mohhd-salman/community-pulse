@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import IntegrityError
+
+from app.decorators import prevent_banned
 from app.models import db, Vote, Post
 import logging
 
@@ -16,6 +18,7 @@ def error_response(message, code=400):
 # -------------------------------
 @vote_bp.route("/", methods=["POST"])
 @jwt_required()
+@prevent_banned
 def vote():
     data = request.get_json()
     user_id = int(get_jwt_identity())

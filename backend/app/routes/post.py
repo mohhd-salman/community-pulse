@@ -1,11 +1,17 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+
+from app.decorators import prevent_banned
 from app.models import Post, User
 from app.extensions import db
 from datetime import datetime, UTC
 import logging
 
-post_bp = Blueprint("posts", __name__)
+post_bp = Blueprint(
+     "posts",
+     __name__,
+     url_prefix="/api/posts"
+)
 logger = logging.getLogger(__name__)
 
 def error_response(message, code=400):
@@ -18,6 +24,7 @@ def error_response(message, code=400):
 # -------------------------------
 @post_bp.route("/", methods=["POST"])
 @jwt_required()
+@prevent_banned
 def create_post():
     data = request.get_json()
     title = data.get("title")
@@ -85,12 +92,45 @@ def get_posts():
 
     return jsonify(output), 200
 
+# -------------------------------
+# Get single posts
+# -------------------------------
+@post_bp.route("/<int:post_id>", methods=["GET"])
+def get_single_post(post_id):
+    post = Post.query.get_or_404(post_id)
+
+    comments = [
+        {
+            "id": c.id,
+            "content": c.content,
+            "author_id": c.author_id,
+            "author_name": c.author.name if c.author else "Unknown",
+            "created_at": c.created_at.isoformat()
+        }
+        for c in post.comments
+    ]
+
+    return jsonify({
+        "id": post.id,
+        "title": post.title,
+        "content": post.content,
+        "link": post.link,
+        "created_at": post.created_at.isoformat(),
+        "author_id": post.author_id,
+        "author_name": post.author.name if post.author else "Unknown",
+        "upvotes": sum(v.value==1 for v in post.votes),
+        "downvotes": sum(v.value==-1 for v in post.votes),
+        "comments": comments
+    }), 200
+
+
 
 # -------------------------------
 # Delete post (user or admin)
 # -------------------------------
 @post_bp.route("/<int:post_id>", methods=["DELETE"])
 @jwt_required()
+@prevent_banned
 def delete_post(post_id):
     user_id = int(get_jwt_identity())
     post = Post.query.get(post_id)
@@ -112,6 +152,7 @@ def delete_post(post_id):
 # -------------------------------
 @post_bp.route("/<int:post_id>", methods=["PATCH"])
 @jwt_required()
+@prevent_banned
 def edit_post(post_id):
     user_id = int(get_jwt_identity())
     post = Post.query.get(post_id)
@@ -136,6 +177,7 @@ def edit_post(post_id):
 # -------------------------------
 @post_bp.route("/<int:post_id>/votes", methods=["GET"])
 @jwt_required()
+@prevent_banned
 def get_post_votes(post_id):
     post = Post.query.get(post_id)
     if not post:

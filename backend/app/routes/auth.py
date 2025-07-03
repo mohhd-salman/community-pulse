@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+
+from app.decorators import prevent_banned
 from app.models import User
 from app.extensions import db
 import logging
@@ -54,6 +56,7 @@ def login():
 
 @auth_bp.route("/me", methods=["GET"])
 @jwt_required()
+@prevent_banned
 def get_current_user():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
@@ -75,6 +78,7 @@ def get_current_user():
 
 @auth_bp.route("/update", methods=["PATCH"])
 @jwt_required()
+@prevent_banned
 def update_user_info():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
@@ -100,6 +104,7 @@ def update_user_info():
 
 @auth_bp.route("/change-password", methods=["PATCH"])
 @jwt_required()
+@prevent_banned
 def change_password():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
@@ -121,8 +126,9 @@ def change_password():
     logger.info(f"User {user.email} changed their password")
     return jsonify({"msg": "Password updated successfully"}), 200
 
-@auth_bp.route("/is-admin", methods=["GET"])
+@auth_bp.route("/check", methods=["GET"])
 @jwt_required()
+@prevent_banned
 def check_admin():
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
