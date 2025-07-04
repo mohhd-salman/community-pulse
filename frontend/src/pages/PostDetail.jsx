@@ -211,7 +211,7 @@ export default function PostDetail() {
                   {new Date(c.created_at).toLocaleString()}
                 </small>
               </div>
-              {user?.id === c.author_id && (
+              {(user?.id === c.author_id || user?.is_admin) && (
                 <button
                   className="btn btn-sm btn-outline-danger"
                   onClick={() => handleDeleteComment(c.id)}

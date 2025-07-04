@@ -145,3 +145,8 @@ a:hover {
 .modal-content .form-control {
   border: 1px solid #444;
 }
+
+input::placeholder {
+  color: #bbb !important; /* brighter for dark theme */
+  opacity: 1;
+}
