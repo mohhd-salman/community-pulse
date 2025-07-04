@@ -1,34 +1,40 @@
-// src/components/Navbar.jsx
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin]     = useState(false);
 
   const doLogout = () => {
     localStorage.removeItem("token");
-    setUser(null);
+    setIsLoggedIn(false);
+    setIsAdmin(false);
     navigate("/login", { replace: true });
   };
 
-  // on mount, hit /me once
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return;         // not logged in
-    axios
-      .get("http://localhost:5000/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then(({ data }) => setUser(data))
-      .catch(() => doLogout());  // if 401, force logout
+    if (!token) return;
+    axiosInstance.get("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+      .then(() => setIsLoggedIn(true))
+      .catch(() => doLogout());
   }, [navigate]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const token = localStorage.getItem("token");
+    axiosInstance.get("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => setIsAdmin(data.is_admin))
+      .catch(() => setIsAdmin(false));
+  }, [isLoggedIn]);
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark px-4">
       <div className="container-fluid">
         <Link className="navbar-brand fw-bold" to="/">Community Pulse</Link>
+
         <button
           className="navbar-toggler"
           type="button"
@@ -37,24 +43,36 @@ export default function Navbar() {
           aria-controls="navContent"
           aria-expanded="false"
           aria-label="Toggle navigation"
-        ><span className="navbar-toggler-icon"></span></button>
+        >
+          <span className="navbar-toggler-icon"></span>
+        </button>
 
-        <div className="collapse navbar-collapse" id="navContent">
-          <ul className="navbar-nav ms-auto mb-2 mb-lg-0">
-            {!user ? (
+        <div className="collapse navbar-collapse justify-content-end" id="navContent">
+          <ul className="navbar-nav mb-2 mb-lg-0">
+            {!isLoggedIn ? (
               <>
-                <li className="nav-item"><Link className="nav-link" to="/">Home</Link></li>
-                <li className="nav-item"><Link className="nav-link" to="/login">Login</Link></li>
-                <li className="nav-item"><Link className="nav-link" to="/register">Register</Link></li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/">Home</Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/login">Login</Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/register">Register</Link>
+                </li>
               </>
             ) : (
               <>
-                <li className="nav-item"><Link className="nav-link" to="/">Home</Link></li>
-                <li className="nav-item"><Link className="nav-link" to="/dashboard">Dashboard</Link></li>
-                {user.is_admin && (
-                  <>
-                    <li className="nav-item"><Link className="nav-link" to="/admin/dashboard">Admin</Link></li>
-                  </>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/">Home</Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/dashboard">Dashboard</Link>
+                </li>
+                {isAdmin && (
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/admin/dashboard">Admin</Link>
+                  </li>
                 )}
                 <li className="nav-item">
                   <button className="btn btn-outline-light ms-2" onClick={doLogout}>

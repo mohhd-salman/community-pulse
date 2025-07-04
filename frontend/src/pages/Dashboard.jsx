@@ -1,28 +1,32 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-import PostCard from "../components/PostCard";
 import { useNavigate } from "react-router-dom";
+import axiosInstance from "../axiosInstance";
+import PostCard from "../components/PostCard";
 import NewPostModal from "../components/NewPostModal";
+import EditProfileModal from "../components/EditProfileModal";
+import ChangePasswordModal from "../components/ChangePasswordModal";
 
 export default function Dashboard() {
-  const [user, setUser]             = useState(null);
-  const [error, setError]           = useState("");
-  const [showNewPost, setShowNewPost] = useState(false);
-  const navigate                    = useNavigate();
+  const [user, setUser]                   = useState(null);
+  const [error, setError]                 = useState("");
+  const [showNewPost, setShowNewPost]     = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showChangePwd, setShowChangePwd] = useState(false);
+  const navigate                          = useNavigate();
 
   const fetchUser = async () => {
     const token = localStorage.getItem("token");
     try {
-      const res = await axios.get("http://localhost:5000/api/auth/me", {
+      const { data } = await axiosInstance.get("/api/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUser(res.data);
+      setUser(data);
     } catch (err) {
       console.error(err);
       setError("Failed to fetch user data.");
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
-        navigate("/login");
+        navigate("/login", { replace: true });
       }
     }
   };
@@ -30,11 +34,6 @@ export default function Dashboard() {
   useEffect(() => {
     fetchUser();
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
 
   if (error) {
     return (
@@ -47,39 +46,58 @@ export default function Dashboard() {
   if (!user) {
     return (
       <div className="container mt-5 text-center">
-        <div className="spinner-border text-primary" role="status" />
+        <div className="spinner-border text-maroon" role="status" />
       </div>
     );
   }
 
+  const handleDelete = (deletedId) => {
+    setUser((u) => ({
+      ...u,
+      posts: u.posts.filter((p) => p.id !== deletedId),
+    }));
+  };
+
   return (
-    <div className="container mt-5">
-      <div className="card shadow mb-4">
+    <div className="container my-5">
+      <div className="card bg-dark text-light shadow mb-4">
         <div className="card-body">
-          <h2 className="card-title mb-3">Welcome, {user.name}!</h2>
-          <p><strong>Email:</strong> {user.email}</p>
-          <p><strong>Role:</strong> {user.is_admin ? "Admin" : "User"}</p>
-          <p><strong>Total Posts:</strong> {user.posts?.length || 0}</p>
-          <p><strong>Total Comments:</strong> {user.comments?.length || 0}</p>
+          <h2 className="mb-3">Welcome, {user.name}!</h2>
 
-          <hr />
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <p><strong>Email:</strong> {user.email}</p>
+            </div>
+            <div className="col-md-6">
+              <p><strong>Role:</strong> {user.is_admin ? "Admin" : "User"}</p>
+            </div>
+          </div>
 
-          <div className="d-flex flex-column flex-md-row gap-2">
+          <div className="row mb-4">
+            <div className="col-md-6">
+              <p><strong>Total Posts:</strong> {user.posts?.length || 0}</p>
+            </div>
+            <div className="col-md-6">
+              <p><strong>Total Comments:</strong> {user.comments?.length || 0}</p>
+            </div>
+          </div>
+
+          <div className="d-flex flex-wrap gap-2">
             <button
-              className="btn btn-primary"
+              className="btn btn-maroon"
               onClick={() => setShowNewPost(true)}
             >
-              + Create New Post
+              + New Post
             </button>
             <button
-              className="btn btn-outline-secondary"
-              onClick={() => navigate("/update-profile")}
+              className="btn btn-maroon"
+              onClick={() => setShowEditProfile(true)}
             >
               Edit Profile
             </button>
             <button
-              className="btn btn-outline-warning"
-              onClick={() => navigate("/change-password")}
+              className="btn btn-maroon"
+              onClick={() => setShowChangePwd(true)}
             >
               Change Password
             </button>
@@ -88,23 +106,21 @@ export default function Dashboard() {
       </div>
 
       <div className="mb-4">
-        <h4>Your Posts</h4>
+        <h4 className="text-light mb-3">Your Posts</h4>
         {user.posts?.length > 0 ? (
-          user.posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              showControls={false}
-              onDelete={(deletedId) =>
-                setUser((prev) => ({
-                  ...prev,
-                  posts: prev.posts.filter((p) => p.id !== deletedId),
-                }))
-              }
-            />
-          ))
+          <div className="row gy-3">
+            {user.posts.map((post) => (
+              <div key={post.id} className="col-12">
+                <PostCard
+                  post={post}
+                  showControls={true}
+                  onDelete={handleDelete}
+                />
+              </div>
+            ))}
+          </div>
         ) : (
-          <p>You haven't posted anything yet.</p>
+          <p className="text-light">You haven’t posted anything yet.</p>
         )}
       </div>
 
@@ -115,6 +131,21 @@ export default function Dashboard() {
           setShowNewPost(false);
           await fetchUser();
         }}
+      />
+
+      <EditProfileModal
+        show={showEditProfile}
+        user={user}
+        onClose={() => setShowEditProfile(false)}
+        onUpdated={(updated) => {
+          setShowEditProfile(false);
+          setUser((u) => ({ ...u, ...updated }));
+        }}
+      />
+
+      <ChangePasswordModal
+        show={showChangePwd}
+        onClose={() => setShowChangePwd(false)}
       />
     </div>
   );

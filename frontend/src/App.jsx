@@ -3,11 +3,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
-import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
-import UpdateProfile from "./pages/UpdateProfile";
-import ChangePassword from "./pages/ChangePassword";
-import EditPost from "./pages/EditPost";
 import PostDetail from "./pages/PostDetail";
 import Navbar from "./components/Navbar";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -21,40 +17,12 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        
-        <Route
-          path="/update-profile"
-          element={
-            <ProtectedRoute>
-              <UpdateProfile />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/change-password"
-          element={
-            <ProtectedRoute>
-              <ChangePassword />
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
               <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-
-
-        <Route
-          path="/edit-post/:postId"
-          element={
-            <ProtectedRoute>
-              <EditPost />
             </ProtectedRoute>
           }
         />
@@ -67,8 +35,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
   );

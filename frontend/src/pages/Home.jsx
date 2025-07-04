@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import PostCard from "../components/PostCard";
 import NewPostModal from "../components/NewPostModal";
 
@@ -10,14 +10,10 @@ export default function Home() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/posts")
-      .then((res) => setPosts(res.data))
-      .catch(() => alert("Failed to load posts"));
-
+    fetchPosts();
     if (token) {
-      axios
-        .get("http://localhost:5000/api/auth/me", {
+      axiosInstance
+        .get("/api/auth/me", {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((res) => setUser(res.data))
@@ -25,44 +21,48 @@ export default function Home() {
     }
   }, [token]);
 
-  const refreshPosts = async () => {
+  const fetchPosts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/posts");
+      const res = await axiosInstance.get("/api/posts?sort=top");
       setPosts(res.data);
-    } catch {
-      alert("Could not refresh posts");
+    } catch (err) {
+      console.error("Failed to load posts", err);
     }
+  };
+
+  const refreshPosts = async () => {
+    await fetchPosts();
   };
 
   return (
     <div className="home-container">
-      <div className="home-header">
-        <h2 className="home-title">Community Pulse</h2>
+      <header className="home-header">
+        <h1 className="home-title">Community Pulse</h1>
         {user && (
           <button
-            className="btn btn-primary btn-sm"
+            className="btn btn-maroon btn-sm"
             onClick={() => setShowNewPost(true)}
           >
             + New Post
           </button>
         )}
-      </div>
+      </header>
 
-      {posts.length === 0 ? (
-        <p className="no-posts">No posts yet.</p>
-      ) : (
-        <div className="posts-list">
-          {posts.map((post, idx) => (
+      <div className="posts-feed">
+        {posts.length === 0 ? (
+          <p className="text-center text-muted">No posts yet.</p>
+        ) : (
+          posts.map((post, idx) => (
             <div
               key={post.id}
-              className="post-wrapper"
+              className="post-item"
               style={{ animationDelay: `${idx * 0.1}s` }}
             >
               <PostCard post={post} showControls={false} />
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
       <NewPostModal
         show={showNewPost}

@@ -1,40 +1,51 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axiosInstance from "../axiosInstance";
 
-export default function NewPostModal({ show, onClose, onCreated }) {
+export default function EditPostModal({ show, post, onClose, onUpdated }) {
   const [title, setTitle]     = useState("");
   const [content, setContent] = useState("");
   const [link, setLink]       = useState("");
-  const [error, setError]     = useState("");
+  const [msg, setMsg]         = useState("");
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (show && post) {
+      setTitle(post.title || "");
+      setContent(post.content || "");
+      setLink(post.link || "");
+      setMsg("");
+      setSuccess(false);
+    }
+  }, [show, post]);
 
   if (!show) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) {
-      setError("Title and content are required");
-      return;
-    }
+    setMsg("");
+    const token = localStorage.getItem("token");
 
     try {
-      const token = localStorage.getItem("token");
-      const payload = { title, content };
-      if (link.trim()) payload.link = link.trim();
-
-      await axiosInstance.post(
-        "/api/posts/",
-        payload,
+      await axiosInstance.patch(
+        `/api/posts/${post.id}`,
+        { title: title.trim(), content: content.trim(), link: link.trim() || null },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      setSuccess(true);
+      setMsg("Post updated successfully!");
 
-      onCreated();
-      setTitle("");
-      setContent("");
-      setLink("");
-      setError("");
+      onUpdated({
+        id: post.id,
+        title: title.trim(),
+        content: content.trim(),
+        link: link.trim() || null
+      });
+
+      setTimeout(onClose, 1000);
     } catch (err) {
-      console.error(err);
-      setError("Failed to create post");
+      console.error("EditPostModal error:", err);
+      setSuccess(false);
+      setMsg("Update failed. Please try again.");
     }
   };
 
@@ -45,12 +56,11 @@ export default function NewPostModal({ show, onClose, onCreated }) {
         onClick={onClose}
         style={{ cursor: "pointer" }}
       />
-
-      <div className="modal d-block" tabIndex="-1" role="dialog" aria-modal="true">
+      <div className="modal d-block" tabIndex={-1} role="dialog" aria-modal="true">
         <div className="modal-dialog modal-dialog-centered" role="document">
-          <div className="modal-content bg-dark text-light shadow-lg">
-            <div className="modal-header border-0">
-              <h5 className="modal-title">New Post</h5>
+          <div className="modal-content bg-dark text-light shadow">
+            <div className="modal-header">
+              <h5 className="modal-title">Edit Post</h5>
               <button
                 type="button"
                 className="btn-close btn-close-white"
@@ -58,56 +68,51 @@ export default function NewPostModal({ show, onClose, onCreated }) {
                 onClick={onClose}
               />
             </div>
-
             <div className="modal-body">
-              {error && <div className="alert alert-danger py-1">{error}</div>}
-
+              {msg && (
+                <div className={`alert ${success ? "alert-success" : "alert-danger"} py-1`}>
+                  {msg}
+                </div>
+              )}
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label className="form-label">Title</label>
                   <input
                     type="text"
-                    className="form-control bg-secondary text-light border-0"
+                    className="form-control bg-secondary text-white border-secondary"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Post title"
                     required
                   />
                 </div>
-
                 <div className="mb-3">
                   <label className="form-label">Content</label>
                   <textarea
-                    className="form-control bg-secondary text-light border-0"
-                    rows="4"
+                    className="form-control bg-secondary text-white border-secondary"
+                    rows={4}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="What's on your mind?"
-                    required
                   />
                 </div>
-
                 <div className="mb-3">
                   <label className="form-label">Link (optional)</label>
                   <input
                     type="url"
-                    className="form-control bg-secondary text-light border-0"
-                    placeholder="https://example.com"
+                    className="form-control bg-secondary text-white border-secondary"
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
                   />
                 </div>
-
-                <div className="d-flex justify-content-end gap-2">
+                <div className="text-end">
                   <button
                     type="button"
-                    className="btn btn-outline-light"
+                    className="btn btn-outline-light me-2"
                     onClick={onClose}
                   >
                     Cancel
                   </button>
                   <button type="submit" className="btn btn-maroon">
-                    Publish
+                    Save Changes
                   </button>
                 </div>
               </form>

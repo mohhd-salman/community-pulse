@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-
+from sqlalchemy import func
 from app.decorators import prevent_banned
 from app.models import Post, User, Vote
 from app.extensions import db
@@ -57,19 +57,36 @@ def create_post():
 def get_posts():
     author_id = request.args.get("author_id", type=int)
     keyword = request.args.get("keyword", type=str)
-
-    query = Post.query
+    sort = request.args.get("sort", default="recent", type=str)
+    q = (
+        db.session
+          .query(
+             Post,
+             func.coalesce(func.sum(Vote.value), 0).label("score")
+          )
+          .outerjoin(Vote)
+          .group_by(Post.id)
+    )
     if author_id:
-        query = query.filter_by(author_id=author_id)
+        q = q.filter(Post.author_id == author_id)
     if keyword:
-        query = query.filter(
-            Post.title.ilike(f"%{keyword}%") | Post.content.ilike(f"%{keyword}%")
+        il = f"%{keyword}%"
+        q = q.filter(
+            Post.title.ilike(il) |
+            Post.content.ilike(il)
         )
 
-    posts = query.order_by(Post.id.desc()).all()
-    output = []
+    if sort == "top":
+        q = q.order_by(func.sum(Vote.value).desc(), Post.created_at.desc())
+    else:
+        q = q.order_by(Post.created_at.desc())
 
-    for post in posts:
+    results = q.all()
+
+    output = []
+    for post, score in results:
+        upvotes   = sum(1 for v in post.votes if v.value == 1)
+        downvotes = sum(1 for v in post.votes if v.value == -1)
         comments = [
             {
                 "id": c.id,
@@ -80,8 +97,7 @@ def get_posts():
             }
             for c in post.comments
         ]
-        upvotes = sum(1 for v in post.votes if v.value == 1)
-        downvotes = sum(1 for v in post.votes if v.value == -1)
+
         output.append({
             "id": post.id,
             "title": post.title,
@@ -89,9 +105,10 @@ def get_posts():
             "link": post.link,
             "created_at": post.created_at.isoformat(),
             "author_id": post.author_id,
-            "author_name": post.author.name,
+            "author_name": post.author.name if post.author else "Unknown",
             "upvotes": upvotes,
             "downvotes": downvotes,
+            "score": score,
             "comments": comments
         })
 
@@ -172,16 +189,18 @@ def delete_post(post_id):
 def edit_post(post_id):
     user_id = int(get_jwt_identity())
     post = Post.query.get(post_id)
+    user = User.query.get(user_id)
 
     if not post:
         return error_response("Post not found", 404)
-    if post.author_id != user_id:
+
+    if post.author_id != user_id and not user.is_admin:
         return error_response("Unauthorized", 403)
 
     data = request.get_json()
-    post.title = data.get("title", post.title)
+    post.title   = data.get("title",   post.title)
     post.content = data.get("content", post.content)
-    post.link = data.get("link", post.link)
+    post.link    = data.get("link",    post.link)
 
     db.session.commit()
     logger.info(f"Post {post_id} updated by user {user_id}")

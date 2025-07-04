@@ -27,7 +27,6 @@ def vote():
     if vt not in ("up","down") or not post_id:
         return error_response("Invalid post_id or vote_type", 400)
 
-    post = Post.query.get_or_404(post_id)
     val  = 1 if vt=="up" else -1
 
     existing = Vote.query.filter_by(user_id=user_id, post_id=post_id).first()

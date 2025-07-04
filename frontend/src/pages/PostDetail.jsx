@@ -1,25 +1,27 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
+import EditPostModal from "../components/EditPostModal";
 
 export default function PostDetail() {
   const { postId } = useParams();
-  const navigate    = useNavigate();
-  const token       = localStorage.getItem("token");
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
 
-  const [post,       setPost]       = useState(null);
-  const [comments,   setComments]   = useState([]);
+  const [post, setPost] = useState(null);
+  const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
-  const [user,       setUser]       = useState(null);
-  const [upvotes,    setUpvotes]    = useState(0);
-  const [downvotes,  setDownvotes]  = useState(0);
-  const [userVote,   setUserVote]   = useState(null);
-  const [error,      setError]      = useState("");
+  const [user, setUser] = useState(null);
+  const [upvotes, setUpvotes] = useState(0);
+  const [downvotes, setDownvotes] = useState(0);
+  const [userVote, setUserVote] = useState(null);
+  const [error, setError] = useState("");
+  const [showEditPost, setShowEditPost] = useState(false);
 
   const fetchPost = async () => {
     try {
-      const { data } = await axios.get(
-        `http://localhost:5000/api/posts/${postId}`,
+      const { data } = await axiosInstance.get(
+        `/api/posts/${postId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setPost(data);
@@ -31,8 +33,8 @@ export default function PostDetail() {
 
   const fetchVotes = async () => {
     try {
-      const { data } = await axios.get(
-        `http://localhost:5000/api/posts/${postId}/votes`,
+      const { data } = await axiosInstance.get(
+        `/api/posts/${postId}/votes`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setUpvotes(data.upvotes);
@@ -44,8 +46,8 @@ export default function PostDetail() {
 
   const fetchComments = async () => {
     try {
-      const { data } = await axios.get(
-        `http://localhost:5000/api/comments?post_id=${postId}`,
+      const { data } = await axiosInstance.get(
+        `/api/comments?post_id=${postId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setComments(data);
@@ -57,8 +59,8 @@ export default function PostDetail() {
   const fetchUser = async () => {
     if (!token) return;
     try {
-      const { data } = await axios.get(
-        `http://localhost:5000/api/auth/me`,
+      const { data } = await axiosInstance.get(
+        "/api/auth/me",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setUser(data);
@@ -78,16 +80,15 @@ export default function PostDetail() {
     fetchUser();
   }, [postId, token, navigate]);
 
-
   const handleVote = async (direction) => {
     if (!user) return;
     try {
-      await axios.post(
-        `http://localhost:5000/api/votes`,
+      await axiosInstance.post(
+        "/api/votes",
         { post_id: postId, vote_type: direction },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setUserVote(prev => (prev === direction ? null : direction));
+      setUserVote((prev) => (prev === direction ? null : direction));
       fetchVotes();
     } catch {
       console.error("Vote failed");
@@ -98,8 +99,8 @@ export default function PostDetail() {
     e.preventDefault();
     if (!newComment.trim()) return;
     try {
-      await axios.post(
-        `http://localhost:5000/api/comments`,
+      await axiosInstance.post(
+        "/api/comments",
         { post_id: postId, content: newComment },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -113,8 +114,8 @@ export default function PostDetail() {
   const handleDeleteComment = async (commentId) => {
     if (!window.confirm("Delete this comment?")) return;
     try {
-      await axios.delete(
-        `http://localhost:5000/api/comments/${commentId}`,
+      await axiosInstance.delete(
+        `/api/comments/${commentId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchComments();
@@ -125,12 +126,12 @@ export default function PostDetail() {
 
   const isOwner = user?.id === post?.author_id;
   const isAdmin = user?.is_admin;
-  const handleEditPost = () => navigate(`/edit-post/${postId}`);
+  const handleEditPost = () => setShowEditPost(true);
   const handleDeletePost = async () => {
     if (!window.confirm("Delete this post?")) return;
     try {
-      await axios.delete(
-        `http://localhost:5000/api/posts/${postId}`,
+      await axiosInstance.delete(
+        `/api/posts/${postId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       navigate("/", { replace: true });
@@ -140,7 +141,7 @@ export default function PostDetail() {
   };
 
   if (error) return <div className="container mt-5 alert alert-danger">{error}</div>;
-  if (!post)  return <div className="container mt-5">Loading...</div>;
+  if (!post) return <div className="container mt-5">Loading...</div>;
 
   return (
     <div className="container mt-5">
@@ -171,11 +172,9 @@ export default function PostDetail() {
           )}
 
           {post.content && <p>{post.content}</p>}
-          {post.link    && (
+          {post.link && (
             <p>
-              Link: <a href={post.link} target="_blank" rel="noopener noreferrer">
-                {post.link}
-              </a>
+              Link: <a href={post.link} target="_blank" rel="noopener noreferrer">{post.link}</a>
             </p>
           )}
 
@@ -225,22 +224,32 @@ export default function PostDetail() {
 
           {user ? (
             <form onSubmit={handleCommentSubmit}>
-              <div className="mb-3">
-                <textarea
-                  className="form-control"
-                  rows={3}
-                  placeholder="Write a comment…"
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                />
-              </div>
-              <button className="btn btn-primary">Submit Comment</button>
+              <textarea
+                className="form-control mb-2 bg-secondary text-white"
+                rows={3}
+                placeholder="Write a comment…"
+                value={newComment}
+                onChange={e => setNewComment(e.target.value)}
+              />
+              <button type="submit" className="btn btn-maroon">
+                Submit Comment
+              </button>
             </form>
           ) : (
             <p className="text-muted">Login to comment.</p>
           )}
         </div>
       </div>
+
+      <EditPostModal
+        show={showEditPost}
+        post={post}
+        onClose={() => setShowEditPost(false)}
+        onUpdated={(updated) => {
+          setPost((p) => ({ ...p, ...updated }));
+          setShowEditPost(false);
+        }}
+      />
     </div>
   );
 }
