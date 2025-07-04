@@ -10,16 +10,24 @@ function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
     try {
       const res = await axios.post("http://localhost:5000/api/auth/login", {
         email,
         password,
       });
-
       localStorage.setItem("token", res.data.access_token);
       navigate("/dashboard");
     } catch (err) {
-      setError("Invalid credentials");
+      const status = err.response?.status;
+      const msg = err.response?.data?.msg || "";
+      if (status === 403 || msg.toLowerCase().includes("banned")) {
+        setError("Your account has been banned. Please contact support.");
+      } else if (status === 401) {
+        setError("Invalid email or password.");
+      } else {
+        setError("Login failed. Please try again.");
+      }
     }
   };
 

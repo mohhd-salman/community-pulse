@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app.decorators import prevent_banned
-from app.models import Post, User
+from app.models import Post, User, Vote
 from app.extensions import db
 from datetime import datetime, UTC
 import logging
@@ -80,6 +80,8 @@ def get_posts():
             }
             for c in post.comments
         ]
+        upvotes = sum(1 for v in post.votes if v.value == 1)
+        downvotes = sum(1 for v in post.votes if v.value == -1)
         output.append({
             "id": post.id,
             "title": post.title,
@@ -87,6 +89,9 @@ def get_posts():
             "link": post.link,
             "created_at": post.created_at.isoformat(),
             "author_id": post.author_id,
+            "author_name": post.author.name,
+            "upvotes": upvotes,
+            "downvotes": downvotes,
             "comments": comments
         })
 
@@ -96,9 +101,9 @@ def get_posts():
 # Get single posts
 # -------------------------------
 @post_bp.route("/<int:post_id>", methods=["GET"])
+@jwt_required(optional=True)
 def get_single_post(post_id):
     post = Post.query.get_or_404(post_id)
-
     comments = [
         {
             "id": c.id,
@@ -110,6 +115,16 @@ def get_single_post(post_id):
         for c in post.comments
     ]
 
+    upvotes = sum(1 for v in post.votes if v.value == 1)
+    downvotes = sum(1 for v in post.votes if v.value == -1)
+
+    user_vote = None
+    user_id = get_jwt_identity()
+    if user_id:
+        existing = Vote.query.filter_by(user_id=int(user_id), post_id=post_id).first()
+        if existing:
+            user_vote = "up" if existing.value == 1 else "down"
+
     return jsonify({
         "id": post.id,
         "title": post.title,
@@ -118,8 +133,9 @@ def get_single_post(post_id):
         "created_at": post.created_at.isoformat(),
         "author_id": post.author_id,
         "author_name": post.author.name if post.author else "Unknown",
-        "upvotes": sum(v.value==1 for v in post.votes),
-        "downvotes": sum(v.value==-1 for v in post.votes),
+        "upvotes": upvotes,
+        "downvotes": downvotes,
+        "user_vote": user_vote,
         "comments": comments
     }), 200
 

@@ -9,7 +9,6 @@ function UpdateProfile() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch current user info
     const token = localStorage.getItem("token");
     axios
       .get("http://localhost:5000/api/auth/me", {
@@ -23,7 +22,7 @@ function UpdateProfile() {
         setMsg("Failed to load profile.");
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
-          navigate("/login");
+          navigate("/login", { replace: true });
         }
       });
   }, [navigate]);
@@ -38,7 +37,11 @@ function UpdateProfile() {
         { name, email },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setMsg("Profile updated successfully!");
+      setMsg("Profile updated successfully! Redirecting…");
+
+      setTimeout(() => {
+        navigate("/dashboard", { replace: true });
+      }, 1500);
     } catch (err) {
       setMsg("Update failed. Try again.");
     }
@@ -46,7 +49,11 @@ function UpdateProfile() {
 
   return (
     <div className="container d-flex justify-content-center align-items-center vh-100">
-      <form onSubmit={handleUpdate} className="p-4 shadow bg-light rounded" style={{ minWidth: 320 }}>
+      <form
+        onSubmit={handleUpdate}
+        className="p-4 shadow bg-light rounded"
+        style={{ minWidth: 320 }}
+      >
         <h2 className="mb-4 text-center">Update Profile</h2>
 
         {msg && <div className="alert alert-info">{msg}</div>}

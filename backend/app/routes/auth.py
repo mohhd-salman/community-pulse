@@ -7,7 +7,7 @@ from app.models import User
 from app.extensions import db
 import logging
 
-auth_bp = Blueprint("auth", __name__)
+auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 logger = logging.getLogger(__name__)
 
 
@@ -45,7 +45,15 @@ def login():
         return jsonify({"msg": "Email and password required"}), 400
 
     user = User.query.filter_by(email=email).first()
-    if not user or not check_password_hash(user.password, password):
+    if not user:
+        logger.warning(f"Failed login attempt for non-existent email: {email}")
+        return jsonify({"msg": "Invalid credentials"}), 401
+
+    if user.is_banned:
+        logger.warning(f"Banned user {email} attempted login")
+        return jsonify({"msg": "User is banned"}), 403
+
+    if not check_password_hash(user.password, password):
         logger.warning(f"Failed login attempt for email: {email}")
         return jsonify({"msg": "Invalid credentials"}), 401
 
@@ -68,6 +76,7 @@ def get_current_user():
         "id": user.id,
         "name": user.name,
         "email": user.email,
+        "is_admin": user.is_admin,
         "created_at": user.created_at.isoformat(),
         "posts": [
             {"id": p.id, "title": p.title, "created_at": p.created_at.isoformat()}
@@ -125,14 +134,3 @@ def change_password():
     db.session.commit()
     logger.info(f"User {user.email} changed their password")
     return jsonify({"msg": "Password updated successfully"}), 200
-
-@auth_bp.route("/check", methods=["GET"])
-@jwt_required()
-@prevent_banned
-def check_admin():
-    user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
-
-    return jsonify({
-        "is_admin": user.is_admin if user else False
-    }), 200

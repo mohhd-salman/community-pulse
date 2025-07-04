@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy.exc import IntegrityError
 
 from app.decorators import prevent_banned
 from app.models import db, Vote, Post
@@ -20,39 +19,30 @@ def error_response(message, code=400):
 @jwt_required()
 @prevent_banned
 def vote():
-    data = request.get_json()
+    data    = request.get_json()
     user_id = int(get_jwt_identity())
     post_id = data.get("post_id")
-    vote_type = data.get("vote_type")
+    vt      = data.get("vote_type")
 
-    if not post_id or vote_type not in ["up", "down"]:
+    if vt not in ("up","down") or not post_id:
         return error_response("Invalid post_id or vote_type", 400)
 
-    vote_value = 1 if vote_type == "up" else -1
+    post = Post.query.get_or_404(post_id)
+    val  = 1 if vt=="up" else -1
 
-    post = Post.query.get(post_id)
-    if not post:
-        return error_response("Post not found", 404)
-
-    existing_vote = Vote.query.filter_by(user_id=user_id, post_id=post_id).first()
-
-    try:
-        if existing_vote:
-            existing_vote.value = vote_value
-            logger.info(f"User {user_id} updated vote on post {post_id} to {vote_type}")
+    existing = Vote.query.filter_by(user_id=user_id, post_id=post_id).first()
+    if existing:
+        if existing.value == val:
+            db.session.delete(existing)
+            msg = "Vote removed"
         else:
-            new_vote = Vote(user_id=user_id, post_id=post_id, value=vote_value)
-            db.session.add(new_vote)
-            logger.info(f"User {user_id} cast {vote_type} vote on post {post_id}")
+            existing.value = val
+            msg = "Vote updated"
+    else:
+        new = Vote(user_id=user_id, post_id=post_id, value=val)
+        db.session.add(new)
+        msg = "Vote recorded"
 
-        db.session.commit()
-        return jsonify({
-            "msg": "Vote recorded",
-            "post_id": post_id,
-            "vote": vote_type
-        }), 200
+    db.session.commit()
+    return jsonify({"msg": msg, "post_id": post_id, "vote": vt}), 200
 
-    except IntegrityError as e:
-        db.session.rollback()
-        logger.error(f"Vote DB error: {e}")
-        return error_response("Database error", 500)

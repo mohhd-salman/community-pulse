@@ -75,3 +75,29 @@ def delete_comment(comment_id):
         db.session.rollback()
         logger.error(f"Error deleting comment {comment_id}: {e}")
         return error_response("Internal server error", 500)
+
+@comment_bp.route("", methods=["GET"])
+@jwt_required()
+def list_comments():
+    post_id = request.args.get("post_id", type=int)
+    if not post_id:
+        return jsonify({"msg": "post_id is required"}), 400
+
+    comments = (
+        Comment.query
+        .filter_by(post_id=post_id)
+        .order_by(Comment.created_at.asc())
+        .all()
+    )
+
+    result = []
+    for c in comments:
+        result.append({
+            "id": c.id,
+            "content": c.content,
+            "author_id": c.author_id,
+            "author_name": c.author.name if c.author else "Unknown",
+            "created_at": c.created_at.isoformat(),
+            **({"parent_id": c.parent_id} if hasattr(c, "parent_id") else {})
+        })
+    return jsonify(result), 200

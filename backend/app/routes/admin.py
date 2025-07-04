@@ -56,6 +56,7 @@ def view_users():
     data = [
         {
             "id": u.id,
+            "name": u.name,
             "email": u.email,
             "created_at": u.created_at.isoformat(),
             "is_admin": u.is_admin,

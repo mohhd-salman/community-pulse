@@ -11,7 +11,6 @@ import EditPost from "./pages/EditPost";
 import PostDetail from "./pages/PostDetail";
 import Navbar from "./components/Navbar";
 import AdminDashboard from "./pages/AdminDashboard";
-import UserManagement from "./pages/UserManagement";
 
 function App() {
   return (
@@ -22,7 +21,6 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/users" element={<UserManagement />} />
         
         <Route
           path="/update-profile"

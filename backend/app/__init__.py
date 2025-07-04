@@ -1,5 +1,5 @@
 import logging
-from flask import Flask, jsonify
+from flask import Flask
 from flask_cors import CORS
 from .config import Config
 from .extensions import db, jwt, migrate
@@ -18,12 +18,17 @@ def create_app():
        Returns: The configured Flask app.
     """
     app = Flask(__name__)
+    app.url_map.strict_slashes = False
     app.config.from_object(Config)
-    CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": "http://localhost:5173"}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
     )
+
+
     logger = logging.getLogger(__name__)
     logger.info("Starting Flask app")
 
@@ -31,22 +36,10 @@ def create_app():
     jwt.init_app(app)
     migrate.init_app(app, db)
 
-    @jwt.unauthorized_loader
-    def missing_token(err):
-        return jsonify({"msg": "Missing or invalid token"}), 401
-
-    @jwt.invalid_token_loader
-    def bad_token(err):
-        return jsonify({"msg": "Invalid token"}), 401
-
-    @jwt.expired_token_loader
-    def expired_token(header, payload):
-        return jsonify({"msg": "Token expired"}), 401
-
-    app.register_blueprint(auth_bp, url_prefix="/api/auth")
-    app.register_blueprint(post_bp, url_prefix="/api/posts")
-    app.register_blueprint(vote_bp, url_prefix="/api/votes")
-    app.register_blueprint(comment_bp, url_prefix="/api/comments")
-    app.register_blueprint(admin_bp, url_prefix="/api/admin")
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(post_bp)
+    app.register_blueprint(vote_bp)
+    app.register_blueprint(comment_bp)
+    app.register_blueprint(admin_bp)
 
     return app

@@ -9,26 +9,23 @@ function EditPost() {
   const [link, setLink] = useState("");
   const [msg, setMsg] = useState("");
   const navigate = useNavigate();
-
   const token = localStorage.getItem("token");
 
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/posts`);
-        const post = res.data.find((p) => p.id === parseInt(postId));
-        if (!post) return setMsg("Post not found");
-
-        setTitle(post.title || "");
-        setContent(post.content || "");
-        setLink(post.link || "");
-      } catch (err) {
+        const res = await axios.get(`http://localhost:5000/api/posts/${postId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setTitle(res.data.title || "");
+        setContent(res.data.content || "");
+        setLink(res.data.link || "");
+      } catch {
         setMsg("Failed to load post");
       }
     };
-
     fetchPost();
-  }, [postId]);
+  }, [postId, token]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -36,15 +33,11 @@ function EditPost() {
       await axios.patch(
         `http://localhost:5000/api/posts/${postId}`,
         { title, content, link },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setMsg("Post updated!");
-      setTimeout(() => navigate("/dashboard"), 1000);
-    } catch (err) {
+      setTimeout(() => navigate(`/posts/${postId}`), 1000);
+    } catch {
       setMsg("Update failed");
     }
   };
