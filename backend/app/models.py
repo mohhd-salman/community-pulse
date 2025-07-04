@@ -1,5 +1,6 @@
 from .extensions import db
 from datetime import datetime, UTC
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # ------------------------
 # User Model
@@ -26,6 +27,12 @@ class User(db.Model):
 
     is_admin = db.Column(db.Boolean, default=False)
     is_banned = db.Column(db.Boolean, default=False)
+
+    def set_password(self, password):
+        self.password = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
 
 
 # ------------------------

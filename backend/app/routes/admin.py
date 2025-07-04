@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from app.decorators import prevent_banned
+from app.decorators import prevent_banned, admin_required
 from app.models import db, User, Post, Comment, Vote
 import logging
 from sqlalchemy import func
@@ -115,19 +115,24 @@ def get_analytics():
 
 @admin_bp.route("/users/<int:user_id>/set-admin", methods=["PATCH"])
 @jwt_required()
-@prevent_banned
-def set_admin(user_id):
+@admin_required
+def set_admin_role(user_id):
+    data = request.get_json()
+    make_admin = data.get("is_admin")
+
+    if make_admin is None:
+        return error_response("Missing 'is_admin' field", 400)
+
+    current_user_id = int(get_jwt_identity())
+    if current_user_id == user_id:
+        return error_response("You cannot change your own admin status", 403)
+
     user = User.query.get(user_id)
     if not user:
         return error_response("User not found", 404)
 
-    data = request.get_json()
-    is_admin = data.get("is_admin")
-
-    if is_admin is None:
-        return error_response("Missing 'is_admin' field", 400)
-
-    user.is_admin = bool(is_admin)
+    user.is_admin = bool(make_admin)
     db.session.commit()
 
-    return jsonify({"msg": f"User {user.email} admin status set to {user.is_admin}"}), 200
+    return jsonify({"msg": f"User {'promoted to' if make_admin else 'demoted from'} admin"}), 200
+

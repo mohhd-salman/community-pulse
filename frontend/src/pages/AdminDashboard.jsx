@@ -59,10 +59,10 @@ export default function AdminDashboard() {
       await axiosInstance.patch(
         `/api/admin/users/${userId}/ban`,
         null,
-        { headers: { Authorization: "Bearer ${token}" } }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       const { data } = await axiosInstance.get("/api/admin/users", {
-        headers: { Authorization: "Bearer ${token}" },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(data);
       if ((page - 1) * perPage >= data.length && page > 1) {
@@ -70,6 +70,22 @@ export default function AdminDashboard() {
       }
     } catch {
       alert("Failed to toggle ban");
+    }
+  };
+
+  const toggleAdmin = async (userId, isCurrentlyAdmin) => {
+    try {
+      await axiosInstance.patch(
+        `/api/admin/users/${userId}/set-admin`,
+        { is_admin: !isCurrentlyAdmin },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const { data } = await axiosInstance.get("/api/admin/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsers(data);
+    } catch {
+      alert("Failed to toggle admin role");
     }
   };
 
@@ -122,10 +138,18 @@ export default function AdminDashboard() {
                 <td>
                   {!u.is_admin && (
                     <button
-                      className="btn btn-sm btn-warning"
+                      className="btn btn-sm btn-warning me-2"
                       onClick={() => toggleBan(u.id)}
                     >
                       {u.is_banned ? "Unban" : "Ban"}
+                    </button>
+                  )}
+                  {user.id !== u.id && (
+                    <button
+                      className="btn btn-sm btn-outline-info"
+                      onClick={() => toggleAdmin(u.id, u.is_admin)}
+                    >
+                      {u.is_admin ? "Revoke Admin" : "Make Admin"}
                     </button>
                   )}
                 </td>
