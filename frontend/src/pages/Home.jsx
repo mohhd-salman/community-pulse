@@ -8,7 +8,7 @@ export default function Home() {
   const [user, setUser]               = useState(null);
   const [showNewPost, setShowNewPost] = useState(false);
   const [search, setSearch]           = useState("");
-  const [sortBy, setSortBy]           = useState("upvotes"); // default to upvotes
+  const [sortBy, setSortBy]           = useState("upvotes");
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -59,9 +59,7 @@ export default function Home() {
         <h1 className="home-title">Community Pulse</h1>
       </header>
 
-      {/* Top Controls Row */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mb-4">
-        {/* New Post Button - left */}
         {user && (
           <button
             className="btn btn-maroon btn-sm"
@@ -71,7 +69,6 @@ export default function Home() {
           </button>
         )}
 
-        {/* Search Input - center */}
         <input
           type="text"
           className="form-control bg-dark text-white border-secondary"
@@ -81,7 +78,6 @@ export default function Home() {
           style={{ maxWidth: "300px" }}
         />
 
-        {/* Sort Dropdown - right */}
         <select
           className="form-select bg-dark text-white border-secondary"
           value={sortBy}
@@ -94,10 +90,14 @@ export default function Home() {
         </select>
       </div>
 
-      {/* Posts Feed */}
-      <div className="posts-feed">
+      <div className="posts-feed mt-4">
         {sortedPosts.length === 0 ? (
-          <p className="text-center text-muted">No posts found.</p>
+          <div className="text-center text-light bg-dark p-4 rounded shadow-sm border border-secondary">
+            <h5 className="mb-2">No posts found</h5>
+            <p className="mb-0">
+              Be the first to create a post and start the conversation.
+            </p>
+          </div>
         ) : (
           sortedPosts.map((post, idx) => (
             <div
@@ -110,6 +110,7 @@ export default function Home() {
           ))
         )}
       </div>
+
 
       <NewPostModal
         show={showNewPost}

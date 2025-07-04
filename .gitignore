@@ -11,6 +11,7 @@ backend/venv/
 
 # Flask instance & migrations
 backend/instance/
+backend/migrations/
 backend/*.sqlite3
 
 # PyCharm project files
