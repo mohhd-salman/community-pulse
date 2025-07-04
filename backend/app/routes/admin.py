@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app.decorators import prevent_banned
@@ -111,3 +111,23 @@ def get_analytics():
         "total_comments": total_comments,
         "top_post": top_post_data
     }), 200
+
+
+@admin_bp.route("/users/<int:user_id>/set-admin", methods=["PATCH"])
+@jwt_required()
+@prevent_banned
+def set_admin(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return error_response("User not found", 404)
+
+    data = request.get_json()
+    is_admin = data.get("is_admin")
+
+    if is_admin is None:
+        return error_response("Missing 'is_admin' field", 400)
+
+    user.is_admin = bool(is_admin)
+    db.session.commit()
+
+    return jsonify({"msg": f"User {user.email} admin status set to {user.is_admin}"}), 200
