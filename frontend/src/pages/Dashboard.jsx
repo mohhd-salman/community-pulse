@@ -78,7 +78,7 @@ export default function Dashboard() {
               <p><strong>Total Posts:</strong> {user.posts?.length || 0}</p>
             </div>
             <div className="col-md-6">
-              <p><strong>Total Comments:</strong> {user.comments?.length || 0}</p>
+              <p><strong>Total Comments:</strong> {user.comment_count || 0}</p>
             </div>
           </div>
 

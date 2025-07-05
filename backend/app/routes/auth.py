@@ -67,22 +67,32 @@ def login():
 @prevent_banned
 def get_current_user():
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    user = User.query.get_or_404(user_id)
 
-    if not user:
-        return jsonify({"msg": "User not found"}), 404
+    def post_with_votes(post):
+        upvotes = sum(1 for v in post.votes if v.value == 1)
+        downvotes = sum(1 for v in post.votes if v.value == -1)
+        return {
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "link": post.link,
+            "created_at": post.created_at.isoformat(),
+            "author_name": user.name,
+            "upvotes": upvotes,
+            "downvotes": downvotes,
+            "comments": [c.id for c in post.comments],
+        }
 
     return jsonify({
         "id": user.id,
         "name": user.name,
         "email": user.email,
         "is_admin": user.is_admin,
-        "created_at": user.created_at.isoformat(),
-        "posts": [
-            {"id": p.id, "title": p.title, "created_at": p.created_at.isoformat()}
-            for p in user.posts
-        ]
-    }), 200
+        "posts": [post_with_votes(p) for p in user.posts],
+        "comment_count": len(user.comments),
+    })
+
 
 
 @auth_bp.route("/update", methods=["PATCH"])
