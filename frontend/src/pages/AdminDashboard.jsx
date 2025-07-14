@@ -120,6 +120,7 @@ export default function AdminDashboard() {
           <thead>
             <tr>
               <th>ID</th>
+              <th>Name</th>
               <th>Email</th>
               <th>Admin</th>
               <th>Banned</th>
@@ -131,6 +132,7 @@ export default function AdminDashboard() {
             {pagedUsers.map((u) => (
               <tr key={u.id}>
                 <td>{u.id}</td>
+                <td>{u.name}</td>
                 <td>{u.email}</td>
                 <td>{u.is_admin ? "✔️" : "—"}</td>
                 <td>{u.is_banned ? "🚫" : "✅"}</td>
